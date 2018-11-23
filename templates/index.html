@@ -2,14 +2,23 @@
 <html>
 <head>
 <title>Flask Website</title>
+<link rel="stylesheet" type="text/css" href="../static/css/bootstrap.css">
+
 </head>
 <body>
 
-<h1>This is a Home Page</h1>
-<p>I am learning Flask framework. So, lets get started</p>
+
+<div class="container-fluid">
+  <h1>Hello World!</h1>
+  <p>Resize the browser window to see the effect.</p>
+  <p>The columns will automatically stack on top of each other when the screen is less than 768px wide.</p>
+  <div class="row">
+    <div class="col-sm-3 col-md-6 col-lg-4" style="background-color:lavender;">.col-dfdfdfsm-4</div>
+    <div class="col-sm-3 col-md-6 col-lg-4" style="background-color:lavenderblush;">.cdfsfsol-sm-8</div>
+  </div>
+</div>
 
 <div>
-
     <a href="{{url_for('about_fun')}}">About Us</a>
 
 </div>
