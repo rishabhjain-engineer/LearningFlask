@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from models import db
 from forms import SignupForm
 
@@ -21,10 +21,18 @@ def about_fun():
     return render_template("about.html")
 
 
-@app.route("/signup")
+@app.route("/signup", methods=['GET', 'POST'])
 def signup():
     form = SignupForm()
-    return render_template("signup.html", form=form)
+
+    if request.method == 'GET':
+        return render_template("signup.html", form=form)
+
+    elif request.method == 'POST':
+        if form.validate() == False:
+            return render_template("signup.html", form=form)
+        else:
+            return "Form Submitted Successfully!"
 
 
 if __name__ == "__main__":
