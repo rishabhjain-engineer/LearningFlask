@@ -23,11 +23,18 @@ def about_fun():
 
 @app.route("/home")
 def home():
+    # By checking below current session holds any email, we maintain the state.
+    # if no email is registered in the session , refrain user to go to home page, instead navigate to login page.
+    if 'email' not in session:
+        return redirect(url_for('login'))
     return render_template("home.html")
 
 
 @app.route("/login", methods=['GET', 'POST'])
 def login():
+    if 'email' in session:
+        return redirect(url_for('home'))
+
     form = LoginForm()
 
     if request.method == 'POST':
@@ -52,6 +59,10 @@ def login():
 
 @app.route("/signup", methods=['GET', 'POST'])
 def signup():
+
+    if 'email' in session:
+        return redirect(url_for('home'))
+
     form = SignupForm()
 
     if request.method == 'GET':
