@@ -40,8 +40,10 @@ def login():
             user = User.query.filter_by(email=email).first()
             if user is not None and user.check_password(password):
                 session['email'] = form.email.data
+                print("==============Rishabh IF=========")
                 return redirect(url_for('home'))
             else:
+                print("==============Rishabh ELSE=========")
                 return redirect(url_for('login'))
 
     elif request.method == 'GET':
@@ -69,7 +71,13 @@ def signup():
             session['email'] = newuser.email
             print("==============Rishabh=========")
             return redirect(url_for('home'))
-            #return "Success!"
+            # return "Success!"
+
+
+@app.route("/logout")
+def logout():
+    session.pop('email', None)
+    return redirect(url_for('index'))
 
 
 if __name__ == "__main__":

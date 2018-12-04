@@ -29,4 +29,5 @@ class User(db.Model):
         print(self.pwdhash)
 
     def check_password(self, password):
+        print("==============Rishabh CHECK PASSWORD=========")
         return check_password_hash(self.pwdhash, password)
