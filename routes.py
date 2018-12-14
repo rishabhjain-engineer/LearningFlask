@@ -1,9 +1,12 @@
-from flask import Flask, render_template, request, session, redirect, url_for
+from flask import Flask, render_template, request, session, redirect, url_for, jsonify, abort
 from models import db, User
+from flask_restful import Resource, Api
 from forms import SignupForm, LoginForm
 
 
 app = Flask(__name__)
+api = Api(app)
+
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://localhost/learningflask'
 db.init_app(app)
@@ -91,5 +94,14 @@ def logout():
     return redirect(url_for('index'))
 
 
+class HelloWorld(Resource):
+    """docstring for HelloWorld"""
+
+    def get(self):
+        return{'helloooo': 'worldddd'}
+
+
+api.add_resource(HelloWorld, '/helloWorld')
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='192.168.2.10', debug=True)
