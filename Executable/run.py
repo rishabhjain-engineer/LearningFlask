@@ -81,7 +81,7 @@ class SpecificUser(Resource):
         if not user:
             return jsonify({'message': 'No user found'})
         else:
-            user.email = "aryan@elgroupinternational.com"
+            user.email = "updated@elgroupinternational.com"
             db.session.commit()
             return jsonify({"message": "email account updated!!"})
 
@@ -96,8 +96,36 @@ class SpecificUser(Resource):
             return jsonify({"message": "user deleted successfully!!"})
 
 
+class GettinComplexJson(Resource):
+    def post(self):
+        data = request.get_json()
+
+        personal_info_output = {}
+        personal_info = data['personal_info']
+        personal_info_output['firstname'] = personal_info['firstname']
+        personal_info_output['lastname'] = personal_info['lastname']
+        personal_info_output['email'] = personal_info['email']
+
+        business_info_output = {}
+        business_info = data['business_info']
+        business_info_output['firstname'] = business_info['firstname']
+        business_info_output['lastname'] = business_info['lastname']
+        business_info_output['email'] = business_info['email']
+
+        careers = data['career']
+        career_output = []
+        for c_object in careers:
+            c_output = {}
+            c_output['co_name'] = c_object['company_name']
+            c_output['salary'] = c_object['salary']
+            career_output.append(c_output)
+
+        return jsonify({"personal_info": personal_info_output, "business_info": business_info_output, "career": career_output})
+
+
 api.add_resource(User, '/user')
 api.add_resource(SpecificUser, '/user/<public_id>')
+api.add_resource(GettinComplexJson, '/complex')
 
 if __name__ == "__main__":
     app.run(debug=True)
