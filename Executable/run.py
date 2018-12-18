@@ -58,14 +58,46 @@ class User(Resource):
 
         return jsonify({'users': output})
 
-    def delete(self):
-        return ''
 
-    def put(self):
-        return ''
+class SpecificUser(Resource):
+    def get(self, public_id):
+        if public_id is not None:
+            user = UserDB.query.filter_by(publicid=public_id).first()
+
+            if not user:
+                return jsonify({'message': 'No user found'})
+            else:
+                user_data = {}
+                user_data['public_id'] = user.publicid
+                user_data['firstname'] = user.firstname
+                user_data['lastname'] = user.lastname
+                user_data['email'] = user.email
+                return jsonify({"user": user_data})
+
+    def put(self, public_id):
+
+        user = UserDB.query.filter_by(publicid=public_id).first()
+
+        if not user:
+            return jsonify({'message': 'No user found'})
+        else:
+            user.email = "aryan@elgroupinternational.com"
+            db.session.commit()
+            return jsonify({"message": "email account updated!!"})
+
+    def delete(self, public_id):
+
+        user = UserDB.query.filter_by(publicid=public_id).first()
+        if not user:
+            return jsonify({'message': 'No user found'})
+        else:
+            db.session.delete(user)
+            db.session.commit()
+            return jsonify({"message": "user deleted successfully!!"})
 
 
 api.add_resource(User, '/user')
+api.add_resource(SpecificUser, '/user/<public_id>')
 
 if __name__ == "__main__":
     app.run(debug=True)
