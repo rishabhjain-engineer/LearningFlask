@@ -27,10 +27,11 @@ class UserDB(db.Model):
 
 
 class TodoDB(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    __tablename__ = 'todo'
+    todo_id = db.Column(db.Integer, primary_key=True)
     text = db.Column(db.String, unique=True)
-    complete = db.Column(db.Boolean)
-    user_id = db.Column(db.Integer)
+    completed = db.Column(db.Boolean)
+    u_id = db.Column(db.Integer)
 
 
 class User(Resource):
@@ -102,6 +103,34 @@ class SpecificUser(Resource):
             return jsonify({"message": "user deleted successfully!!"})
 
 
+class SpecificTodo(Resource):
+    def put(self, todoid):
+
+        todo_instance = TodoDB.query.filter_by(todo_id=todoid).first()
+
+        if not todo_instance:
+            return jsonify({"message": "No task found!!"})
+
+        todo_instance.text = "Email to Matt"
+        db.session.commit()
+        return jsonify({"message": "Task updated"})
+
+
+class Todo(Resource):
+    def post(self):
+        data = request.get_json()
+        text = data['text']
+        todo_userid = data['user_id']
+
+        print(text)
+
+        new_todo = TodoDB(text=text, completed=False, u_id=todo_userid)
+        db.session.add(new_todo)
+        db.session.commit()
+
+        return jsonify({'message': 'Task added successfully!'})
+
+
 class Login(Resource):
     def post(self):
 
@@ -121,7 +150,15 @@ class Login(Resource):
 
             token = jwt.encode({'publicid': 'UserDB.u_publicid', 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30)}, app.config['SECRET_KEY'])
 
-            return jsonify({'token': token.decode('UTF-8')})
+            user_data = {}
+            user_data['public_id'] = user.u_publicid
+            user_data['firstname'] = user.u_firstname
+            user_data['lastname'] = user.u_lastname
+            user_data['email'] = user.u_email
+            user_data['username'] = user.u_username
+            user_data['token'] = token.decode('UTF-8')
+
+            return jsonify({'message': 'Logged in successfully!', 'user': user_data})
 
         return make_response('Could not verify', 401, {'WWW-Authenticate': 'Basic-realm="Login requierd"'})
 
@@ -157,6 +194,8 @@ api.add_resource(User, '/user')
 api.add_resource(SpecificUser, '/user/<public_id>')
 api.add_resource(GettinComplexJson, '/complex')
 api.add_resource(Login, '/login')
+api.add_resource(Todo, '/todo')
+api.add_resource(SpecificTodo, '/todo/<todoid>')
 
 if __name__ == "__main__":
     app.run(debug=True)
