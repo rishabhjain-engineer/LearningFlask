@@ -90,6 +90,18 @@ class SpecificUser(Resource):
                 user_data['lastname'] = user.u_lastname
                 user_data['email'] = user.u_email
                 user_data['username'] = user.u_username
+
+                todo_ins = TodoDB.query.filter_by(u_id=user.u_id).all()
+                todo_out = []
+                for todo in todo_ins:
+                    todo_o = {}
+                    todo_o['text'] = todo.text
+                    todo_o['completed'] = todo.completed
+                    todo_o['todo_id'] = todo.todo_id
+                    todo_out.append(todo_o)
+
+                user_data['todos'] = todo_out
+
                 return jsonify({"user": user_data})
 
     def put(self, public_id):
@@ -131,9 +143,11 @@ class Todo(Resource):
     def post(self):
         data = request.get_json()
         text = data['text']
-        todo_userid = data['user_id']
+        user_publicid = data['public_id']
 
-        new_todo = TodoDB(text=text, completed=False, u_id=todo_userid)
+        user_instance = UserDB.query.filter_by(u_publicid=user_publicid).first()
+
+        new_todo = TodoDB(text=text, completed=False, u_id=user_instance.u_id)
         db.session.add(new_todo)
         db.session.commit()
 
