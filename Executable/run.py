@@ -60,6 +60,17 @@ class User(Resource):
             user_data['lastname'] = user.u_lastname
             user_data['email'] = user.u_email
             user_data['username'] = user.u_username
+
+            todo_ins = TodoDB.query.filter_by(u_id=user.u_id).all()
+            todo_out = []
+            for todo in todo_ins:
+                todo_o = {}
+                todo_o['text'] = todo.text
+                todo_o['completed'] = todo.completed
+                todo_o['todo_id'] = todo.todo_id
+                todo_out.append(todo_o)
+
+            user_data['todos'] = todo_out
             output.append(user_data)
 
         return jsonify({'users': output})
@@ -113,7 +124,7 @@ class SpecificTodo(Resource):
 
         todo_instance.text = "Email to Matt"
         db.session.commit()
-        return jsonify({"message": "Task updated"})
+        return jsonify({"message": "Task updated!"})
 
 
 class Todo(Resource):
@@ -122,13 +133,23 @@ class Todo(Resource):
         text = data['text']
         todo_userid = data['user_id']
 
-        print(text)
-
         new_todo = TodoDB(text=text, completed=False, u_id=todo_userid)
         db.session.add(new_todo)
         db.session.commit()
 
         return jsonify({'message': 'Task added successfully!'})
+
+    def get(self):
+        todoall = TodoDB.query.all()
+        output = []
+        for todo in todoall:
+            todo_data = {}
+            todo_data['todo_task'] = todo.text
+            todo_data['todo_completed'] = todo.completed
+            todo_data['todo_id'] = todo.todo_id
+            output.append(todo_data)
+
+        return jsonify({'todos': output})
 
 
 class Login(Resource):
