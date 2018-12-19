@@ -1,8 +1,10 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from flask_restful import Resource, Api
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug import generate_password_hash, check_password_hash
 import uuid
+import jwt
+import datetime
 
 app = Flask(__name__)
 api = Api(app)
@@ -15,12 +17,13 @@ db = SQLAlchemy(app)
 
 class UserDB(db.Model):
     __tablename__ = 'users'
-    uid = db.Column(db.Integer, primary_key=True)
-    publicid = db.Column(db.String(150))
-    firstname = db.Column(db.String(150))
-    lastname = db.Column(db.String(150))
-    email = db.Column(db.String(120), unique=True)
-    pwdhash = db.Column(db.String(100))
+    u_id = db.Column(db.Integer, primary_key=True)
+    u_publicid = db.Column(db.String(150))
+    u_firstname = db.Column(db.String(150))
+    u_lastname = db.Column(db.String(150))
+    u_username = db.Column(db.String(150), unique=True)
+    u_email = db.Column(db.String(150), unique=True)
+    u_pwdhash = db.Column(db.String(150))
 
 
 class TodoDB(db.Model):
@@ -37,9 +40,10 @@ class User(Resource):
         firstname = data['firstname']
         lastname = data['lastname']
         email = data['email']
+        username = data['username']
         password = generate_password_hash(data['password'], method='sha256')
 
-        new_user = UserDB(publicid=str(uuid.uuid4()), firstname=firstname, lastname=lastname, email=email, pwdhash=password)
+        new_user = UserDB(u_publicid=str(uuid.uuid4()), u_firstname=firstname, u_lastname=lastname, u_username=username, u_email=email, u_pwdhash=password)
         db.session.add(new_user)
         db.session.commit()
 
@@ -50,10 +54,11 @@ class User(Resource):
         output = []
         for user in users:
             user_data = {}
-            user_data['public_id'] = user.publicid
-            user_data['firstname'] = user.firstname
-            user_data['lastname'] = user.lastname
-            user_data['email'] = user.email
+            user_data['public_id'] = user.u_publicid
+            user_data['firstname'] = user.u_firstname
+            user_data['lastname'] = user.u_lastname
+            user_data['email'] = user.u_email
+            user_data['username'] = user.u_username
             output.append(user_data)
 
         return jsonify({'users': output})
@@ -62,38 +67,63 @@ class User(Resource):
 class SpecificUser(Resource):
     def get(self, public_id):
         if public_id is not None:
-            user = UserDB.query.filter_by(publicid=public_id).first()
+            user = UserDB.query.filter_by(u_publicid=public_id).first()
 
             if not user:
                 return jsonify({'message': 'No user found'})
             else:
                 user_data = {}
-                user_data['public_id'] = user.publicid
-                user_data['firstname'] = user.firstname
-                user_data['lastname'] = user.lastname
-                user_data['email'] = user.email
+                user_data['public_id'] = user.u_publicid
+                user_data['firstname'] = user.u_firstname
+                user_data['lastname'] = user.u_lastname
+                user_data['email'] = user.u_email
+                user_data['username'] = user.u_username
                 return jsonify({"user": user_data})
 
     def put(self, public_id):
 
-        user = UserDB.query.filter_by(publicid=public_id).first()
+        user = UserDB.query.filter_by(u_publicid=public_id).first()
 
         if not user:
             return jsonify({'message': 'No user found'})
         else:
-            user.email = "updated@elgroupinternational.com"
+            user.u_email = "updated@elgroupinternational.com"
             db.session.commit()
             return jsonify({"message": "email account updated!!"})
 
     def delete(self, public_id):
 
-        user = UserDB.query.filter_by(publicid=public_id).first()
+        user = UserDB.query.filter_by(u_publicid=public_id).first()
         if not user:
             return jsonify({'message': 'No user found'})
         else:
             db.session.delete(user)
             db.session.commit()
             return jsonify({"message": "user deleted successfully!!"})
+
+
+class Login(Resource):
+    def post(self):
+
+        data = request.get_json()
+        username = data['username']
+        password = data['password']
+
+        if not username or not password:
+            return make_response('Could not verify', 401, {'WWW-Authenticate': 'Basic-realm="Login requierd"'})
+
+        user = UserDB.query.filter_by(u_username=username).first()
+
+        if not user:
+            return make_response('Could not verify', 401, {'WWW-Authenticate': 'Basic-realm="Login requierd"'})
+
+        if check_password_hash(user.u_pwdhash, password):
+
+            token = jwt.encode({'publicid': 'UserDB.u_publicid', 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30)}, app.config['SECRET_KEY'])
+
+            return jsonify({'token': token.decode('UTF-8')})
+
+        return make_response('Could not verify', 401, {'WWW-Authenticate': 'Basic-realm="Login requierd"'})
 
 
 class GettinComplexJson(Resource):
@@ -126,6 +156,7 @@ class GettinComplexJson(Resource):
 api.add_resource(User, '/user')
 api.add_resource(SpecificUser, '/user/<public_id>')
 api.add_resource(GettinComplexJson, '/complex')
+api.add_resource(Login, '/login')
 
 if __name__ == "__main__":
     app.run(debug=True)
