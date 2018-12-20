@@ -5,6 +5,7 @@ from werkzeug import generate_password_hash, check_password_hash
 import uuid
 import jwt
 import datetime
+from functools import wraps
 
 app = Flask(__name__)
 api = Api(app)
@@ -32,6 +33,31 @@ class TodoDB(db.Model):
     text = db.Column(db.String, unique=True)
     completed = db.Column(db.Boolean)
     u_id = db.Column(db.Integer)
+
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+
+        token = None
+        if 'x-access-token' in request.headers:
+            token = request.headers['x-access-token']
+            print(token)
+
+        if not token:
+            return jsonify({'message': 'Token is missing'}), 401
+
+        try:
+            data = jwt.decode(token, app.config['SECRET_KEY'])
+            received_publicid = data['publicid']
+            current_user = UserDB.query.filter_by(u_publicid=data['publicid']).first()
+        except:
+            return jsonify({'message': 'Token is invalid'}), 401
+
+        # return f(current_user, *args, **kwargs)
+        return f(received_publicid, *args, **kwargs)
+
+    return decorated
 
 
 class User(Resource):
@@ -183,7 +209,7 @@ class Login(Resource):
 
         if check_password_hash(user.u_pwdhash, password):
 
-            token = jwt.encode({'publicid': 'UserDB.u_publicid', 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30)}, app.config['SECRET_KEY'])
+            token = jwt.encode({'publicid': user.u_publicid, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30)}, app.config['SECRET_KEY'])
 
             user_data = {}
             user_data['public_id'] = user.u_publicid
@@ -225,12 +251,44 @@ class GettinComplexJson(Resource):
         return jsonify({"personal_info": personal_info_output, "business_info": business_info_output, "career": career_output})
 
 
+class TestToken(Resource):
+    @token_required
+    def get(received_publicid, self):
+
+        if received_publicid is not None:
+            user = UserDB.query.filter_by(u_publicid=received_publicid).first()
+
+            if not user:
+                return jsonify({'message': 'No user found'})
+            else:
+                user_data = {}
+                user_data['public_id'] = user.u_publicid
+                user_data['firstname'] = user.u_firstname
+                user_data['lastname'] = user.u_lastname
+                user_data['email'] = user.u_email
+                user_data['username'] = user.u_username
+
+                todo_ins = TodoDB.query.filter_by(u_id=user.u_id).all()
+                todo_out = []
+                for todo in todo_ins:
+                    todo_o = {}
+                    todo_o['text'] = todo.text
+                    todo_o['completed'] = todo.completed
+                    todo_o['todo_id'] = todo.todo_id
+                    todo_out.append(todo_o)
+
+                user_data['todos'] = todo_out
+
+                return jsonify({"user": user_data})
+
+
 api.add_resource(User, '/user')
 api.add_resource(SpecificUser, '/user/<public_id>')
 api.add_resource(GettinComplexJson, '/complex')
 api.add_resource(Login, '/login')
 api.add_resource(Todo, '/todo')
 api.add_resource(SpecificTodo, '/todo/<todoid>')
+api.add_resource(TestToken, '/test')
 
 if __name__ == "__main__":
     app.run(debug=True)
